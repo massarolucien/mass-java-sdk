@@ -1,12 +1,11 @@
 package com.mass.sdk.desktop.interfaces;
 
+import java.time.Instant;
+
 public interface IDesktopGameCharacter {
-    String getName();
-    void setName(String name);
-
     String getGameId();
-    void setGameId(String gameId);
 
-    long getCreateTime();
-    void setCreateTime(long createTime);
+    String getName();
+
+    Instant getCreateTime();
 }

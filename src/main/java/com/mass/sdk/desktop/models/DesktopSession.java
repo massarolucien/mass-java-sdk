@@ -2,122 +2,137 @@ package com.mass.sdk.desktop.models;
 
 import com.google.gson.reflect.TypeToken;
 import com.mass.sdk.MassClient;
-import com.mass.sdk.Page;
+import com.mass.sdk.models.GameInstance;
+import com.mass.sdk.models.Page;
+import com.mass.sdk.models.Progress;
+import com.mass.sdk.models.ProxyInstance;
+import com.mass.sdk.models.account.AccountInfoDto;
+import com.mass.sdk.models.account.SessionDto;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.ArrayList;
 
 public class DesktopSession {
-    private final MassClient client;
+    protected final MassClient client;
     private final String userId;
+    private final String cookies;
+    private final String nickname;
+    private final AccountInfoDto info;
+
+    public DesktopSession(MassClient client, SessionDto session) {
+        this.client = client;
+        this.userId = session == null ? "" : session.getUserId();
+        this.cookies = session == null ? "" : session.getCookies();
+        this.nickname = session == null ? "" : session.getNickname();
+        this.info = session == null || session.getInfo() == null ? new AccountInfoDto() : session.getInfo();
+    }
 
     public DesktopSession(MassClient client, String userId) {
-        this.client = client;
-        this.userId = userId;
+        this(client, new SessionDto().withUserId(userId));
     }
 
     public String getUserId() {
         return userId;
     }
 
-    public List<DesktopNetGame> getNetGames() throws IOException {
-        return client.request("GET", "/api/desktop/" + userId + "/net-game/list", null,
-            new TypeToken<>() {});
+    public String getCookies() {
+        return cookies;
     }
 
-    public List<DesktopRentalGame> getRentalGames() throws IOException {
-        return client.request("GET", "/api/desktop/" + userId + "/rental-game/list", null,
-            new TypeToken<>() {});
+    public String getNickname() {
+        return nickname;
     }
 
-    public Page<DesktopSkin> getSkins(int page) throws IOException {
-        PageRequest request = new PageRequest(page);
-        return client.request("GET", "/api/desktop/" + userId + "/skin/list", request,
-            new TypeToken<>() {});
+    public AccountInfoDto getInfo() {
+        return info;
     }
 
-    public Page<DesktopSkin> getOwnedSkins(int page) throws IOException {
-        PageRequest request = new PageRequest(page);
-        return client.request("GET", "/api/desktop/" + userId + "/skin/owned-list", request,
-            new TypeToken<>() {});
+    protected String desktopRoute(String suffix) {
+        return "/api/desktop/" + userId + suffix;
     }
 
-    public List<DesktopNetGameCharacter> getNetGameCharacters(String gameId) throws IOException {
-        return client.request("GET", "/api/desktop/" + userId + "/net-game/" + gameId + "/list", null,
-            new TypeToken<>() {});
+    public List<DesktopNetGame> getDesktopNetGames() throws IOException {
+        return client.get(desktopRoute("/net-game/list"), new TypeToken<>() {});
     }
 
-    public List<DesktopRentalGameCharacter> getRentalGameCharacters(String gameId) throws IOException {
-        return client.request("GET", "/api/desktop/" + userId + "/rental-game/" + gameId + "/list", null,
-            new TypeToken<>() {});
+    public List<DesktopRentalGame> getDesktopRentalGames() throws IOException {
+        return client.get(desktopRoute("/rental-game/list"), new TypeToken<>() {});
     }
 
-    public void addNetGameCharacter(String gameId, String name) throws IOException {
-        AddCharacterRequest request = new AddCharacterRequest(name);
-        client.request("POST", "/api/desktop/" + userId + "/net-game/" + gameId + "/add", request,
-            new TypeToken<Void>() {});
+    public Page<DesktopSkin> getDesktopSkins(int page) throws IOException {
+        return client.get(desktopRoute("/skin/list"),
+                MassClient.Parameters.create().add("page", page),
+                new TypeToken<>() {});
     }
 
-    public void addRentalGameCharacter(String gameId, String name) throws IOException {
-        AddCharacterRequest request = new AddCharacterRequest(name);
-        client.request("POST", "/api/desktop/" + userId + "/rental-game/" + gameId + "/add", request,
-            new TypeToken<Void>() {});
+    public Page<DesktopSkin> getDesktopOwnedSkins(int page) throws IOException {
+        return client.get(desktopRoute("/skin/owned-list"),
+                MassClient.Parameters.create().add("page", page),
+                new TypeToken<>() {});
     }
 
-    public void setSkin(String itemId) throws IOException {
-        client.request("POST", "/api/desktop/" + userId + "/skin/" + itemId + "/set", new Object(),
-            new TypeToken<Void>() {});
+    public List<DesktopNetGameCharacter> getDesktopNetGameCharacters(String gameId) throws IOException {
+        return client.get(desktopRoute("/net-game/" + gameId + "/list"), new TypeToken<>() {});
     }
 
-    public int startNetGameProxy(String gameId, String name) throws IOException {
-        return client.request("POST", "/api/desktop/" + userId + "/net-game/" + gameId + "/" + name + "/start-proxy", null,
-            new TypeToken<>() {});
+    public List<DesktopRentalGameCharacter> getDesktopRentalGameCharacters(String gameId) throws IOException {
+        return client.get(desktopRoute("/rental-game/" + gameId + "/list"), new TypeToken<>() {});
     }
 
-    public int startRentalGameProxy(String gameId, String name, String password) throws IOException {
-        StartProxyRequest request = new StartProxyRequest(password);
-        return client.request("POST", "/api/desktop/" + userId + "/rental-game/" + gameId + "/" + name + "/start-proxy", request,
-            new TypeToken<>() {});
+    public void addDesktopNetGameCharacter(String gameId, String name) throws IOException {
+        client.post(desktopRoute("/net-game/" + gameId + "/add"),
+                MassClient.Parameters.create().add("name", name));
     }
 
-    public int startRentalGameProxy(String gameId, String name) throws IOException {
-        return this.startRentalGameProxy(gameId, name, null);
+    public void addDesktopRentalGameCharacter(String gameId, String name) throws IOException {
+        client.post(desktopRoute("/rental-game/" + gameId + "/add"),
+                MassClient.Parameters.create().add("name", name));
     }
 
-    private static class AddCharacterRequest {
-        private final String name;
-
-        public AddCharacterRequest(String name) {
-            this.name = name;
-        }
-
-        public String getName() {
-            return name;
-        }
+    public void setDesktopSkin(String itemId) throws IOException {
+        client.post(desktopRoute("/skin/" + itemId + "/set"), MassClient.Parameters.empty());
     }
 
-    private static class StartProxyRequest {
-        private final String password;
-
-        public StartProxyRequest(String password) {
-            this.password = password;
-        }
-
-        public String getPassword() {
-            return password;
-        }
+    public ProxyInstance startDesktopNetGameProxy(String gameId, String name) throws IOException {
+        return client.post(desktopRoute("/net-game/" + gameId + "/" + name + "/start-proxy"),
+                TypeToken.get(ProxyInstance.class));
     }
 
-    private static class PageRequest {
-        private final int page;
+    public ProxyInstance startDesktopRentalGameProxy(String gameId, String name) throws IOException {
+        return startDesktopRentalGameProxy(gameId, name, null);
+    }
 
-        public PageRequest(int page) {
-            this.page = page;
-        }
+    public ProxyInstance startDesktopRentalGameProxy(String gameId, String name, String password) throws IOException {
+        return client.post(desktopRoute("/rental-game/" + gameId + "/" + name + "/start-proxy"),
+                MassClient.Parameters.create().add("password", password),
+                TypeToken.get(ProxyInstance.class));
+    }
 
-        public int getPage() {
-            return page;
-        }
+    public GameInstance startDesktopNetJavaGame(String gameId, String name) throws IOException {
+        return client.progress(desktopRoute("/net-game/" + gameId + "/" + name + "/start-game"));
+    }
+
+    public GameInstance startDesktopNetJavaGame(String gameId, String name, java.util.function.Consumer<Progress> progressConsumer) throws IOException {
+        return client.progress(desktopRoute("/net-game/" + gameId + "/" + name + "/start-game"), progressConsumer);
+    }
+
+    public GameInstance startDesktopRentalJavaGame(String gameId, String name) throws IOException {
+        return startDesktopRentalJavaGame(gameId, name, null, null);
+    }
+
+    public GameInstance startDesktopRentalJavaGame(String gameId, String name, java.util.function.Consumer<Progress> progressConsumer) throws IOException {
+        return startDesktopRentalJavaGame(gameId, name, null, progressConsumer);
+    }
+
+    public GameInstance startDesktopRentalJavaGame(String gameId, String name, String password) throws IOException {
+        return startDesktopRentalJavaGame(gameId, name, password, null);
+    }
+
+    public GameInstance startDesktopRentalJavaGame(String gameId, String name, String password, java.util.function.Consumer<Progress> progressConsumer) throws IOException {
+        var suffix = "/rental-game/" + gameId + "/" + name + "/start-game";
+        var path = password == null || password.isEmpty()
+                ? desktopRoute(suffix)
+                : desktopRoute(suffix) + "?password=" + java.net.URLEncoder.encode(password, java.nio.charset.StandardCharsets.UTF_8);
+        return client.progress(path, progressConsumer);
     }
 }

@@ -3,21 +3,23 @@ package com.mass.sdk.desktop.models;
 import com.google.gson.annotations.SerializedName;
 import com.mass.sdk.desktop.interfaces.IDesktopGameCharacter;
 
-public class DesktopNetGameCharacter implements IDesktopGameCharacter {
-    @SerializedName("name")
-    private String name = "";
+import java.time.Instant;
 
+public final class DesktopNetGameCharacter implements IDesktopGameCharacter {
     @SerializedName("game_id")
     private String gameId = "";
-
+    private String name = "";
     @SerializedName("create_time")
-    private long createTime;
+    private Instant createTime = Instant.EPOCH;
 
-    public DesktopNetGameCharacter() {}
+    @Override
+    public String getGameId() {
+        return gameId;
+    }
 
-    public DesktopNetGameCharacter(String name, String gameId) {
-        this.name = name;
-        this.gameId = gameId;
+    public DesktopNetGameCharacter withGameId(String gameId) {
+        this.gameId = gameId == null ? "" : gameId;
+        return this;
     }
 
     @Override
@@ -25,37 +27,18 @@ public class DesktopNetGameCharacter implements IDesktopGameCharacter {
         return name;
     }
 
-    @Override
-    public void setName(String name) {
-        this.name = name;
+    public DesktopNetGameCharacter withName(String name) {
+        this.name = name == null ? "" : name;
+        return this;
     }
 
     @Override
-    public String getGameId() {
-        return gameId;
-    }
-
-    @Override
-    public void setGameId(String gameId) {
-        this.gameId = gameId;
-    }
-
-    @Override
-    public long getCreateTime() {
+    public Instant getCreateTime() {
         return createTime;
     }
 
-    @Override
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
-    }
-
-    @Override
-    public String toString() {
-        return "DesktopNetGameCharacter{" +
-                ", name='" + name + '\'' +
-                ", gameId='" + gameId + '\'' +
-                ", createTime=" + createTime +
-                '}';
+    public DesktopNetGameCharacter withCreateTime(Instant createTime) {
+        this.createTime = createTime == null ? Instant.EPOCH : createTime;
+        return this;
     }
 }

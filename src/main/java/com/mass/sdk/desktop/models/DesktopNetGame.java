@@ -4,41 +4,31 @@ import com.google.gson.annotations.SerializedName;
 import com.mass.sdk.desktop.enums.DesktopGameVersion;
 import com.mass.sdk.desktop.interfaces.IDesktopGame;
 
-public class DesktopNetGame implements IDesktopGame {
+public final class DesktopNetGame implements IDesktopGame {
     @SerializedName("entity_id")
     private String id = "";
-
-    @SerializedName("name")
     private String name = "";
-
     @SerializedName("online_count")
     private long playerCount;
-
     @SerializedName("like_num")
     private long likeCount;
-
     @SerializedName("title_image_url")
     private String imageUrl = "";
-
     @SerializedName("brief_summary")
     private String summary = "";
-
     @SerializedName("download_num")
     private int downloadCount;
-
     @SerializedName("mc_version_id")
-    private DesktopGameVersion gameVersionId = DesktopGameVersion.UNKNOWN;
-
-    public DesktopNetGame() {}
+    private DesktopGameVersion gameVersionId = DesktopGameVersion.NONE;
 
     @Override
     public String getId() {
         return id;
     }
 
-    @Override
-    public void setId(String id) {
-        this.id = id;
+    public DesktopNetGame withId(String id) {
+        this.id = id == null ? "" : id;
+        return this;
     }
 
     @Override
@@ -46,9 +36,9 @@ public class DesktopNetGame implements IDesktopGame {
         return name;
     }
 
-    @Override
-    public void setName(String name) {
-        this.name = name;
+    public DesktopNetGame withName(String name) {
+        this.name = name == null ? "" : name;
+        return this;
     }
 
     @Override
@@ -56,9 +46,9 @@ public class DesktopNetGame implements IDesktopGame {
         return playerCount;
     }
 
-    @Override
-    public void setPlayerCount(long playerCount) {
+    public DesktopNetGame withPlayerCount(long playerCount) {
         this.playerCount = playerCount;
+        return this;
     }
 
     @Override
@@ -66,9 +56,9 @@ public class DesktopNetGame implements IDesktopGame {
         return likeCount;
     }
 
-    @Override
-    public void setLikeCount(long likeCount) {
+    public DesktopNetGame withLikeCount(long likeCount) {
         this.likeCount = likeCount;
+        return this;
     }
 
     @Override
@@ -76,46 +66,35 @@ public class DesktopNetGame implements IDesktopGame {
         return imageUrl;
     }
 
-    @Override
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public DesktopNetGame withImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl == null ? "" : imageUrl;
+        return this;
     }
 
     public String getSummary() {
         return summary;
     }
 
-    public void setSummary(String summary) {
-        this.summary = summary;
+    public DesktopNetGame withSummary(String summary) {
+        this.summary = summary == null ? "" : summary;
+        return this;
     }
 
     public int getDownloadCount() {
         return downloadCount;
     }
 
-    public void setDownloadCount(int downloadCount) {
+    public DesktopNetGame withDownloadCount(int downloadCount) {
         this.downloadCount = downloadCount;
+        return this;
     }
 
     public DesktopGameVersion getGameVersionId() {
         return gameVersionId;
     }
 
-    public void setGameVersionId(DesktopGameVersion gameVersionId) {
-        this.gameVersionId = gameVersionId;
-    }
-
-    @Override
-    public String toString() {
-        return "DesktopNetGame{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", playerCount=" + playerCount +
-                ", likeCount=" + likeCount +
-                ", imageUrl='" + imageUrl + '\'' +
-                ", summary='" + summary + '\'' +
-                ", downloadCount=" + downloadCount +
-                ", gameVersionId=" + gameVersionId +
-                '}';
+    public DesktopNetGame withGameVersionId(DesktopGameVersion gameVersionId) {
+        this.gameVersionId = gameVersionId == null ? DesktopGameVersion.NONE : gameVersionId;
+        return this;
     }
 }

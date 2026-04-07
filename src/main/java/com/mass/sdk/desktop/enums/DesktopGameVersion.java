@@ -1,38 +1,46 @@
 package com.mass.sdk.desktop.enums;
 
 public enum DesktopGameVersion {
+    NONE(0),
+    CPP(100000000L),
+    RTX(200000000L),
+    V1710(1007010L),
+    V1102(1010002L),
+    V18(1008000L),
+    V1112(1011002L),
+    V1122(1012002L),
+    V188(1008008L),
+    V189(1008009L),
+    V194(1009004L),
+    V164(1006004L),
+    V172(1007002L),
+    V112(1012000L),
+    V1132(1013002L),
+    V1143(1014003L),
+    V115(1015000L),
+    V116(1016000L),
+    V118(1018000L),
+    V1192(1019002L),
+    V120(1020000L),
+    V1206(1020006L),
+    V121(1021000L);
 
-    UNKNOWN(0),
-    V1_7_10(1710),
-    V1_8_9(189),
-    V1_12_2(1122),
-    V1_16_5(1165),
-    V1_17_1(1171),
-    V1_18_2(1182),
-    V1_19_2(1192),
-    V1_19_3(1193),
-    V1_19_4(1194),
-    V1_20_1(1201),
-    V1_20_2(1202),
-    V1_20_4(1204),
-    V1_21(1210);
+    private final long value;
 
-    private final int id;
-
-    DesktopGameVersion(int id) {
-        this.id = id;
+    DesktopGameVersion(long value) {
+        this.value = value;
     }
 
-    public int getId() {
-        return id;
+    public long value() {
+        return value;
     }
 
-    public static DesktopGameVersion fromId(int id) {
-        for (DesktopGameVersion version : values()) {
-            if (version.id == id) {
+    public static DesktopGameVersion fromValue(long value) {
+        for (var version : values()) {
+            if (version.value == value) {
                 return version;
             }
         }
-        return UNKNOWN;
+        return NONE;
     }
 }

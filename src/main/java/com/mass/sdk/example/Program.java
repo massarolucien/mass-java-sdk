@@ -4,49 +4,49 @@ import com.mass.sdk.MassClient;
 import com.mass.sdk.desktop.models.DesktopNetGame;
 import com.mass.sdk.desktop.models.DesktopNetGameCharacter;
 import com.mass.sdk.desktop.models.DesktopSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mass.sdk.models.ProxyInstance;
 
-import java.util.List;
+public final class Program {
+    private Program() {
+    }
 
-public class Program {
-    private static final Logger logger = LoggerFactory.getLogger(Program.class);
-
-    static void main(String[] args) {
+    public static void main(String[] args) {
         try {
-            // 查找本地Mass服务
-            MassClient massClient = MassClient.findAsync(23333, 10);
+            var massClient = MassClient.find();
 
-            // 登录 Mass
-            massClient.massLogin("bUSNBWWVT+G5OC/jKU3IWd2X8xec5e20WBv8RnUjxWzV3030/6EyH3f5YvIL+mHaFo6+CSoo46u5uIMs9d/pJS4cXaks6c1UYSPjanbqSQuIaAkYLnLRp28DhCoHDEVOO9ja0zRlWzkZcHW0HiYG8RCeIJ8VUltzDLR60df0hLzeDsR95u6uouqiga1HJ7lHcBWwvj48R5rclnzrGX8lUGvVQ5hWkWd0KsuGtpE38VYEEKg6DU8axnY2uVxSZ+xWprEorbVSurBawh+Hn8iHi/eqo568O4q0UvZa3SL4tdsBmPv0KRvAVnl90FGhsYY770plJARarZN1/ma8RTrR9w==");
-            logger.info("成功登录Mass");
+            var token = Server.getToken("YOUR_USERNAME");
 
-            // 随机小号登录
-            DesktopSession session = massClient.desktop.randomLogin();
-            logger.info("成功登录 {}", session.getUserId());
+            massClient.massLogin(token);
+            System.out.println("Mass login succeeded.");
 
-            // 获取网络服务器列表
-            List<DesktopNetGame> netGames = session.getNetGames();
-            DesktopNetGame heypixelGame = null;
-            for (DesktopNetGame game : netGames) {
-                if (game.getName().contains("布吉岛")) {
-                    heypixelGame = game;
-                    break;
-                }
-            }
+            DesktopSession session = massClient.desktop().login4399ComRandom();
+            System.out.println("Account login succeeded: userId=" + session.getUserId()
+                    + ", nickname=" + session.getNickname()
+                    + ", platform=" + session.getInfo().getPlatform()
+                    + ", type=" + session.getInfo().getType()
+                    + ", account=" + session.getInfo().getAccount()
+                    + ", password=" + session.getInfo().getPassword());
 
-            // 添加随机角色
-            session.addNetGameCharacter(heypixelGame.getId(), RandomHelper.getString(10));
+            DesktopNetGame heypixelGame = session.getDesktopNetGames().stream()
+                    .filter(game -> game.getName().contains("布吉岛"))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Target game was not found."));
+            System.out.println(heypixelGame.getName() + " " + heypixelGame.getId());
 
-            // 获取角色列表
-            List<DesktopNetGameCharacter> characters = session.getNetGameCharacters(heypixelGame.getId());
-            DesktopNetGameCharacter character = characters.get(0);
+            session.addDesktopNetGameCharacter(heypixelGame.getId(), RandomHelper.getString(10));
+            System.out.println("Random role added.");
 
-            // 启动代理服务
-            int port = session.startNetGameProxy(heypixelGame.getId(), character.getName());
-            logger.info("{}", "127.0.0.1:" + port);
-        } catch (Exception e) {
-            logger.error("程序执行失败", e);
+            DesktopNetGameCharacter character = session.getDesktopNetGameCharacters(heypixelGame.getId()).stream()
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Role was not found."));
+            System.out.println("Current role: " + character.getName());
+
+            ProxyInstance instance = session.startDesktopNetGameProxy(heypixelGame.getId(), character.getName());
+            System.out.println("Proxy started at 127.0.0.1:" + instance.getPort());
+
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
     }
 }

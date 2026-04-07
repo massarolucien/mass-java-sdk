@@ -5,12 +5,30 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.mass.sdk.desktop.DesktopClient;
+import com.mass.sdk.desktop.enums.DesktopServerTypeAdapter;
 import com.mass.sdk.desktop.enums.DesktopGameVersion;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.mass.sdk.desktop.enums.DesktopGameVersionAdapter;
+import com.mass.sdk.desktop.enums.DesktopServerStatus;
+import com.mass.sdk.desktop.enums.DesktopServerStatusAdapter;
+import com.mass.sdk.desktop.enums.DesktopServerType;
+import com.mass.sdk.desktop.enums.DesktopVisibilityStatus;
+import com.mass.sdk.desktop.enums.DesktopVisibilityStatusAdapter;
+import com.mass.sdk.instance.InstanceClient;
+import com.mass.sdk.mobile.MobileClient;
+import com.mass.sdk.models.ApiResponse;
+import com.mass.sdk.models.GameInstance;
+import com.mass.sdk.models.MassInstance;
+import com.mass.sdk.models.Progress;
+import com.mass.sdk.models.account.AccountPlatform;
+import com.mass.sdk.models.account.AccountType;
+import com.mass.sdk.serialization.AccountPlatformAdapter;
+import com.mass.sdk.serialization.AccountTypeAdapter;
+import com.mass.sdk.serialization.MassInstanceAdapter;
+import com.mass.sdk.serialization.UnixTimestampInstantAdapter;
+import com.mass.sdk.signalr.SignalRClient;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -19,251 +37,268 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.function.Consumer;
 
-public class MassClient {
-    private static final Logger logger = LoggerFactory.getLogger(MassClient.class);
+public final class MassClient {
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
 
+    private final String baseUrl;
     private final HttpClient httpClient;
     private final Gson gson;
-    private final String baseUrl;
+    private final DesktopClient desktop;
+    private final MobileClient mobile;
+    private final InstanceClient instance;
 
     public MassClient(String baseUrl) {
-        String normalized = baseUrl;
-        if (!(normalized.startsWith("http://") || normalized.startsWith("https://"))) {
-            normalized = "http://" + normalized;
-        }
-        this.baseUrl = normalized.endsWith("/") ? normalized.substring(0, normalized.length() - 1) : normalized;
+        this(baseUrl, defaultHttpClient(), defaultGson());
+    }
 
-        this.gson = new GsonBuilder()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .registerTypeAdapter(DesktopGameVersion.class, new com.mass.sdk.desktop.enums.DesktopGameVersionAdapter())
-                .create();
-
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .build();
-
+    public MassClient(String baseUrl, HttpClient httpClient, Gson gson) {
+        this.baseUrl = normalizeBaseUrl(baseUrl);
+        this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+        this.gson = Objects.requireNonNull(gson, "gson");
         this.desktop = new DesktopClient(this);
+        this.mobile = new MobileClient(this);
+        this.instance = new InstanceClient(this);
     }
 
-    private String camelToSnake(String camelCase) {
-        return camelCase.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+    public DesktopClient desktop() {
+        return desktop;
     }
 
-    private void addQueryParameters(StringBuilder urlBuilder, Object obj) throws IOException {
-        if (obj == null) return;
-
-        try {
-            Class<?> clazz = obj.getClass();
-            Field[] fields = clazz.getDeclaredFields();
-
-            for (Field field : fields) {
-                field.setAccessible(true);
-                Object value = field.get(obj);
-
-                String fieldName = camelToSnake(field.getName());
-
-                String stringValue;
-                if (value == null) {
-                    stringValue = "";
-                } else if (value instanceof Boolean) {
-                    stringValue = ((Boolean) value) ? "1" : "0";
-                } else {
-                    stringValue = value.toString();
-                }
-
-                if (urlBuilder.indexOf("?") < 0) {
-                    urlBuilder.append("?");
-                } else {
-                    urlBuilder.append("&");
-                }
-
-                urlBuilder.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8))
-                        .append("=")
-                        .append(URLEncoder.encode(stringValue, StandardCharsets.UTF_8));
-            }
-        } catch (IllegalAccessException e) {
-            throw new IOException("无法转换对象为查询参数", e);
-        }
+    public MobileClient mobile() {
+        return mobile;
     }
 
-    private String objectToFormBody(Object obj) throws IOException {
-        StringBuilder builder = new StringBuilder();
-
-        if (obj == null) {
-            return "";
-        }
-
-        try {
-            Class<?> clazz = obj.getClass();
-            Field[] fields = clazz.getDeclaredFields();
-
-            for (Field field : fields) {
-                field.setAccessible(true);
-                Object value = field.get(obj);
-
-                String fieldName = camelToSnake(field.getName());
-
-                String stringValue;
-                if (value == null) {
-                    stringValue = "";
-                } else if (value instanceof Boolean) {
-                    stringValue = ((Boolean) value) ? "1" : "0";
-                } else {
-                    stringValue = value.toString();
-                }
-
-                if (!stringValue.isEmpty()) {
-                    if (builder.length() > 0) {
-                        builder.append("&");
-                    }
-                    builder.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8))
-                            .append("=")
-                            .append(URLEncoder.encode(stringValue, StandardCharsets.UTF_8));
-                }
-            }
-        } catch (IllegalAccessException e) {
-            throw new IOException("无法转换对象为表单数据", e);
-        }
-
-        return builder.toString();
+    public InstanceClient instance() {
+        return instance;
     }
 
-    public <T> T get(String path, TypeToken<T> responseTypeToken) throws IOException {
-        return request("GET", path, null, responseTypeToken);
+    public HttpClient httpClient() {
+        return httpClient;
     }
 
-    public <T> T request(String path, Class<T> responseType) throws IOException {
-        return request("POST", path, null, TypeToken.get(responseType));
+    public Gson gson() {
+        return gson;
     }
 
-    public <T> T request(String method, String path, Object body, TypeToken<T> responseTypeToken) throws IOException {
-        String url = baseUrl + path;
-        HttpRequest.Builder requestBuilder;
-
-        if ("GET".equalsIgnoreCase(method)) {
-            StringBuilder urlBuilder = new StringBuilder(url);
-            if (body != null) {
-                addQueryParameters(urlBuilder, body);
-            }
-            requestBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(urlBuilder.toString()))
-                    .GET();
-        } else {
-            String formBody = objectToFormBody(body);
-            requestBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(formBody));
-        }
-
-        HttpRequest request = requestBuilder.build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IOException("HTTP请求失败: " + response.statusCode() + " " + response.body());
-            }
-
-            return parseApiResponse(response.body(), responseTypeToken);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("HTTP请求被中断", e);
-        }
-    }
-
-    private <T> T parseApiResponse(String responseBody, TypeToken<T> responseTypeToken) throws IOException {
-        Type responseType = responseTypeToken.getType();
-
-        if (responseType == Void.class) {
-            Type apiResponseType = TypeToken.getParameterized(ApiResponse.class, Object.class).getType();
-            ApiResponse<?> apiResponse = gson.fromJson(responseBody, apiResponseType);
-            if (apiResponse.getCode() != 200) {
-                throw new IOException("API请求失败: " + apiResponse.getMsg());
-            }
-            return null;
-        }
-
-        Type apiResponseType = TypeToken.getParameterized(ApiResponse.class, responseType).getType();
-
-        ApiResponse<T> apiResponse = gson.fromJson(responseBody, apiResponseType);
-
-        if (apiResponse.getCode() != 200) {
-            throw new IOException("API请求失败: " + apiResponse.getMsg());
-        }
-
-        return apiResponse.getData();
-    }
-
-
-    public void request(String path, Object body) throws IOException {
-        request("POST", path, body, new TypeToken<Void>() {});
+    public String baseUrl() {
+        return baseUrl;
     }
 
     public boolean ping() {
         try {
-            get("/api/base/ping", new TypeToken<Void>() {});
+            request(HttpMethod.GET, "/api/base/ping", Parameters.empty(), TypeToken.get(Void.class));
             return true;
-        } catch (Exception e) {
-            logger.warn("Ping failed", e);
+        } catch (IOException exception) {
             return false;
         }
     }
 
     public void massLogin(String token) throws IOException {
-        request("POST", "/api/security/login", new LoginRequest(token),
-            new TypeToken<Void>() {});
+        post("/api/security/login", Parameters.create().add("token", token), TypeToken.get(Void.class));
     }
 
-    private static class LoginRequest {
-        private final String token;
-
-        public LoginRequest(String token) {
-            this.token = token;
-        }
-
-        public String getToken() {
-            return token;
-        }
+    public GameInstance progress(String path) throws IOException {
+        return progress(path, null);
     }
 
-    public final DesktopClient desktop;
-
-    public HttpClient getHttpClient() {
-        return httpClient;
+    public GameInstance progress(String path, Consumer<Progress> progressConsumer) throws IOException {
+        return new SignalRClient(httpClient, gson, baseUrl).awaitGameInstance(path, progressConsumer);
     }
 
-    public Gson getGson() {
-        return gson;
+    public <T> T get(String path, TypeToken<T> typeToken) throws IOException {
+        return request(HttpMethod.GET, path, Parameters.empty(), typeToken);
     }
 
-    public String getBaseUrl() {
-        return baseUrl;
+    public <T> T get(String path, Parameters query, TypeToken<T> typeToken) throws IOException {
+        return request(HttpMethod.GET, path, query, typeToken);
     }
 
-    public static MassClient findAsync(int startPort, int tryTimes) {
-        int port = startPort;
+    public <T> T post(String path, TypeToken<T> typeToken) throws IOException {
+        return request(HttpMethod.POST, path, Parameters.empty(), typeToken);
+    }
 
-        MassClient client = null;
-        do {
-            try {
-                client = new MassClient("http://127.0.0.1:" + port);
-                if (client.ping()) {
-                    break;
-                }
-                client = null;
-            } catch (Exception e) {
-                if (client != null) {
-                    client = null;
-                }
+    public <T> T post(String path, Parameters form, TypeToken<T> typeToken) throws IOException {
+        return request(HttpMethod.POST, path, form, typeToken);
+    }
+
+    public void post(String path, Parameters form) throws IOException {
+        post(path, form, TypeToken.get(Void.class));
+    }
+
+    public <T> T request(HttpMethod method, String path, Parameters parameters, TypeToken<T> typeToken) throws IOException {
+        var request = buildRequest(method, path, parameters == null ? Parameters.empty() : parameters);
+        var response = send(request);
+        return parseApiResponse(response.body(), typeToken.getType());
+    }
+
+    public static MassClient find() {
+        return find(23333, 10);
+    }
+
+    public static MassClient find(int startPort, int tryTimes) {
+        for (var port = startPort; port < startPort + tryTimes; port++) {
+            var client = new MassClient("http://127.0.0.1:" + port);
+            if (client.ping()) {
+                return client;
             }
-            port++;
-        } while (port < startPort + tryTimes);
-
-        if (client == null) {
-            throw new RuntimeException("没有找到 Mass 本地服务");
         }
 
-        return client;
+        throw new IllegalStateException("Mass local service was not found.");
+    }
+
+    private HttpRequest buildRequest(HttpMethod method, String path, Parameters parameters) {
+        var builder = HttpRequest.newBuilder()
+                .timeout(REQUEST_TIMEOUT);
+
+        if (method == HttpMethod.GET) {
+            builder.uri(URI.create(baseUrl + path + parameters.toQueryString()));
+            builder.GET();
+            return builder.build();
+        }
+
+        builder.uri(URI.create(baseUrl + path));
+        builder.header("Content-Type", "application/x-www-form-urlencoded");
+        builder.POST(HttpRequest.BodyPublishers.ofString(parameters.toFormBody()));
+        return builder.build();
+    }
+
+    private HttpResponse<String> send(HttpRequest request) throws IOException {
+        try {
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IOException("HTTP request failed: " + response.statusCode() + " " + response.body());
+            }
+            return response;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IOException("HTTP request interrupted.", exception);
+        }
+    }
+
+    private <T> T parseApiResponse(String body, Type dataType) throws IOException {
+        var apiResponseType = TypeToken.getParameterized(ApiResponse.class, dataType == Void.class ? Object.class : dataType).getType();
+        ApiResponse<?> response = gson.fromJson(body, apiResponseType);
+
+        if (response == null) {
+            throw new IOException("Empty API response.");
+        }
+
+        if (response.getCode() != 200) {
+            throw new IOException(response.getMsg());
+        }
+
+        if (dataType == Void.class) {
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        ApiResponse<T> typed = (ApiResponse<T>) response;
+        return typed.getData();
+    }
+
+    private static String normalizeBaseUrl(String baseUrl) {
+        Objects.requireNonNull(baseUrl, "baseUrl");
+        var normalized = baseUrl.startsWith("http://") || baseUrl.startsWith("https://")
+                ? baseUrl
+                : "http://" + baseUrl;
+        return normalized.endsWith("/") ? normalized.substring(0, normalized.length() - 1) : normalized;
+    }
+
+    private static HttpClient defaultHttpClient() {
+        return HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
+    }
+
+    private static Gson defaultGson() {
+        return new GsonBuilder()
+                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                .registerTypeAdapter(DesktopGameVersion.class, new DesktopGameVersionAdapter())
+                .registerTypeAdapter(DesktopServerStatus.class, new DesktopServerStatusAdapter())
+                .registerTypeAdapter(DesktopVisibilityStatus.class, new DesktopVisibilityStatusAdapter())
+                .registerTypeAdapter(DesktopServerType.class, new DesktopServerTypeAdapter())
+                .registerTypeAdapter(Instant.class, new UnixTimestampInstantAdapter())
+                .registerTypeAdapter(AccountPlatform.class, new AccountPlatformAdapter())
+                .registerTypeAdapter(AccountType.class, new AccountTypeAdapter())
+                .registerTypeAdapter(MassInstance.class, new MassInstanceAdapter())
+                .create();
+    }
+
+    public enum HttpMethod {
+        GET,
+        POST
+    }
+
+    public static final class Parameters {
+        private final LinkedHashMap<String, String> values = new LinkedHashMap<>();
+
+        private Parameters() {
+        }
+
+        public static Parameters create() {
+            return new Parameters();
+        }
+
+        public static Parameters empty() {
+            return new Parameters();
+        }
+
+        public Parameters add(String key, Object value) {
+            if (value == null) {
+                return this;
+            }
+
+            var text = value instanceof Boolean bool
+                    ? (bool ? "1" : "0")
+                    : String.valueOf(value);
+
+            if (!text.isEmpty()) {
+                values.put(key, text);
+            }
+            return this;
+        }
+
+        public Parameters addAll(Map<String, ?> entries) {
+            entries.forEach(this::add);
+            return this;
+        }
+
+        public boolean isEmpty() {
+            return values.isEmpty();
+        }
+
+        public String toQueryString() {
+            if (isEmpty()) {
+                return "";
+            }
+
+            return "?" + encodedPairs();
+        }
+
+        public String toFormBody() {
+            return encodedPairs();
+        }
+
+        private String encodedPairs() {
+            var joiner = new StringJoiner("&");
+            values.forEach((key, value) -> joiner.add(encode(key) + "=" + encode(value)));
+            return joiner.toString();
+        }
+
+        private static String encode(String value) {
+            try {
+                return URLEncoder.encode(value, StandardCharsets.UTF_8);
+            } catch (Exception exception) {
+                throw new UncheckedIOException(new IOException("Failed to encode parameter: " + value, exception));
+            }
+        }
     }
 }

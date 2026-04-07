@@ -1,4 +1,4 @@
-package com.mass.sdk.desktop.enums;
+package com.mass.sdk.serialization;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -8,25 +8,26 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.mass.sdk.models.account.AccountPlatform;
 
 import java.lang.reflect.Type;
 
-public final class DesktopGameVersionAdapter implements JsonSerializer<DesktopGameVersion>, JsonDeserializer<DesktopGameVersion> {
+public final class AccountPlatformAdapter implements JsonSerializer<AccountPlatform>, JsonDeserializer<AccountPlatform> {
     @Override
-    public JsonElement serialize(DesktopGameVersion source, Type type, JsonSerializationContext context) {
+    public JsonElement serialize(AccountPlatform source, Type type, JsonSerializationContext context) {
         return source == null ? JsonNull.INSTANCE : new JsonPrimitive(source.value());
     }
 
     @Override
-    public DesktopGameVersion deserialize(JsonElement json, Type type, JsonDeserializationContext context) throws JsonParseException {
+    public AccountPlatform deserialize(JsonElement json, Type type, JsonDeserializationContext context) throws JsonParseException {
         if (json == null || json.isJsonNull()) {
-            return DesktopGameVersion.NONE;
+            return AccountPlatform.DESKTOP;
         }
 
         try {
-            return DesktopGameVersion.fromValue(json.getAsLong());
+            return AccountPlatform.fromValue(json.getAsInt());
         } catch (RuntimeException exception) {
-            return DesktopGameVersion.NONE;
+            return AccountPlatform.DESKTOP;
         }
     }
 }

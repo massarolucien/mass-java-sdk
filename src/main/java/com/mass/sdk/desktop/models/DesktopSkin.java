@@ -2,60 +2,48 @@ package com.mass.sdk.desktop.models;
 
 import com.google.gson.annotations.SerializedName;
 
-public class DesktopSkin {
+public final class DesktopSkin {
     @SerializedName("entity_id")
     private String id = "";
-
-    @SerializedName("name")
     private String name = "";
-
     @SerializedName("brief_summary")
     private String briefSummary = "";
-
     @SerializedName("image_url")
     private String imageUrl = "";
-
-    public DesktopSkin() {}
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public DesktopSkin withId(String id) {
+        this.id = id == null ? "" : id;
+        return this;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public DesktopSkin withName(String name) {
+        this.name = name == null ? "" : name;
+        return this;
     }
 
     public String getBriefSummary() {
         return briefSummary;
     }
 
-    public void setBriefSummary(String briefSummary) {
-        this.briefSummary = briefSummary;
+    public DesktopSkin withBriefSummary(String briefSummary) {
+        this.briefSummary = briefSummary == null ? "" : briefSummary;
+        return this;
     }
 
     public String getImageUrl() {
         return imageUrl;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    @Override
-    public String toString() {
-        return "DesktopSkin{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", briefSummary='" + briefSummary + '\'' +
-                ", imageUrl='" + imageUrl + '\'' +
-                '}';
+    public DesktopSkin withImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl == null ? "" : imageUrl;
+        return this;
     }
 }

@@ -1,11 +1,17 @@
 package com.mass.sdk.models;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.time.Instant;
 
 public class MassInstance {
+    @SerializedName("user_id")
     private String userId = "";
+    @SerializedName("type")
     private String type = "";
+    @SerializedName("id")
     private long id;
+    @SerializedName("launch_time")
     private Instant launchTime = Instant.EPOCH;
 
     public String getUserId() {

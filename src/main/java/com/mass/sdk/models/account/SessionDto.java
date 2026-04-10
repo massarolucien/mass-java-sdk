@@ -1,9 +1,15 @@
 package com.mass.sdk.models.account;
 
+import com.google.gson.annotations.SerializedName;
+
 public final class SessionDto {
+    @SerializedName("user_id")
     private String userId = "";
+    @SerializedName("cookies")
     private String cookies = "";
+    @SerializedName("nickname")
     private String nickname = "";
+    @SerializedName("info")
     private AccountInfoDto info = new AccountInfoDto();
 
     public String getUserId() {

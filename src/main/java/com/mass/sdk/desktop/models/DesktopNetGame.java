@@ -7,6 +7,7 @@ import com.mass.sdk.desktop.interfaces.IDesktopGame;
 public final class DesktopNetGame implements IDesktopGame {
     @SerializedName("entity_id")
     private String id = "";
+    @SerializedName("name")
     private String name = "";
     @SerializedName("online_count")
     private long playerCount;

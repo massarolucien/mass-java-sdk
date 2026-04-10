@@ -1,9 +1,15 @@
 package com.mass.sdk.models.account;
 
+import com.google.gson.annotations.SerializedName;
+
 public final class AccountInfoDto {
+    @SerializedName("platform")
     private AccountPlatform platform = AccountPlatform.DESKTOP;
+    @SerializedName("type")
     private AccountType type = AccountType.COOKIES;
+    @SerializedName("account")
     private String account = "";
+    @SerializedName("password")
     private String password = "";
 
     public AccountPlatform getPlatform() {

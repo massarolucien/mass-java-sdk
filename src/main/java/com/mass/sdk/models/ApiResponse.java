@@ -1,8 +1,13 @@
 package com.mass.sdk.models;
 
+import com.google.gson.annotations.SerializedName;
+
 public final class ApiResponse<T> {
+    @SerializedName("code")
     private int code;
+    @SerializedName("msg")
     private String msg = "";
+    @SerializedName("data")
     private T data;
 
     public int getCode() {

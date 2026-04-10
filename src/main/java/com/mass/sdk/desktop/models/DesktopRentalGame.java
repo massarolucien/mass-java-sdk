@@ -9,6 +9,7 @@ import com.mass.sdk.desktop.interfaces.IDesktopGame;
 public final class DesktopRentalGame implements IDesktopGame {
     @SerializedName("entity_id")
     private String id = "";
+    @SerializedName("name")
     private String name = "";
     @SerializedName("player_count")
     private long playerCount;
@@ -18,12 +19,15 @@ public final class DesktopRentalGame implements IDesktopGame {
     private String imageUrl = "";
     @SerializedName("server_name")
     private String serverName = "";
+    @SerializedName("visibility")
     private DesktopVisibilityStatus visibility = DesktopVisibilityStatus.PUBLIC;
     @SerializedName("has_pwd")
     private boolean hasPassword;
     @SerializedName("server_type")
     private DesktopServerType serverType = DesktopServerType.DOCKER;
+    @SerializedName("status")
     private DesktopServerStatus status = DesktopServerStatus.NONE;
+    @SerializedName("capacity")
     private long capacity;
     @SerializedName("mc_version")
     private String mcVersion = "";
@@ -37,6 +41,7 @@ public final class DesktopRentalGame implements IDesktopGame {
     private boolean pvpEnabled;
     @SerializedName("icon_index")
     private long iconIndex;
+    @SerializedName("offset")
     private String offset;
 
     @Override

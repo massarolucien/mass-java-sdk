@@ -8,6 +8,7 @@ import java.time.Instant;
 public final class DesktopNetGameCharacter implements IDesktopGameCharacter {
     @SerializedName("game_id")
     private String gameId = "";
+    @SerializedName("name")
     private String name = "";
     @SerializedName("create_time")
     private Instant createTime = Instant.EPOCH;

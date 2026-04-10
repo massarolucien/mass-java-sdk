@@ -1,9 +1,15 @@
 package com.mass.sdk.models;
 
+import com.google.gson.annotations.SerializedName;
+
 public final class Progress {
+    @SerializedName("step")
     private int step;
+    @SerializedName("total")
     private int total;
+    @SerializedName("percentage")
     private int percentage;
+    @SerializedName("message")
     private String message = "";
 
     public int getStep() {

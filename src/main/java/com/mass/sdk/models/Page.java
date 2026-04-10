@@ -1,10 +1,14 @@
 package com.mass.sdk.models;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public final class Page<T> {
+    @SerializedName("items")
     private List<T> items = new ArrayList<>();
+    @SerializedName("total_page")
     private int totalPage;
 
     public List<T> getItems() {

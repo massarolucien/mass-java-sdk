@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName;
 public final class DesktopSkin {
     @SerializedName("entity_id")
     private String id = "";
+    @SerializedName("name")
     private String name = "";
     @SerializedName("brief_summary")
     private String briefSummary = "";
